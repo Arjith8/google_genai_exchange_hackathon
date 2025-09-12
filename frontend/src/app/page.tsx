@@ -5,16 +5,14 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { CheckCircle, FileText, Zap, Shield, ArrowRight, Users, Clock, Star } from "lucide-react"
 import Link from "next/link"
 import { ThemeToggle } from "@/components/custom/theme-toggle"
+import { Logo } from "@/components/custom/logo"
 
 export default function DemistifyLanding() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <FileText className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold text-foreground">Demistify</span>
-          </div>
+          <Logo />
           <nav className="hidden md:flex items-center space-x-6">
             <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors">
               Features
@@ -128,13 +126,13 @@ export default function DemistifyLanding() {
               <CardHeader>
                 <Shield className="h-8 w-8 text-primary mb-2" />
                 <CardTitle>Privacy First</CardTitle>
-                <CardDescription>Your documents are processed securely and never stored permanently</CardDescription>
+                <CardDescription>Your documents are processed securely</CardDescription>
               </CardHeader>
             </Card>
             <Card>
               <CardHeader>
                 <Clock className="h-8 w-8 text-primary mb-2" />
-                <CardTitle>Instant Results</CardTitle>
+                <CardTitle>Fast Results</CardTitle>
                 <CardDescription>Get simplified explanations in seconds, not hours of reading</CardDescription>
               </CardHeader>
             </Card>
@@ -142,7 +140,7 @@ export default function DemistifyLanding() {
               <CardHeader>
                 <Zap className="h-8 w-8 text-primary mb-2" />
                 <CardTitle>AI-Powered</CardTitle>
-                <CardDescription>Advanced language models trained specifically on legal documents</CardDescription>
+                <CardDescription>Advanced language models</CardDescription>
               </CardHeader>
             </Card>
             <Card>

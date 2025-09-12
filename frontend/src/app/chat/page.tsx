@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { FileText, Send, Upload, ArrowLeft, Bot, User, Loader2 } from "lucide-react"
 import Link from "next/link"
+import { Logo } from "@/components/custom/logo"
 
 interface Message {
   id: string
@@ -96,7 +97,6 @@ export default function ChatPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-4">
@@ -104,17 +104,12 @@ export default function ChatPage() {
               <ArrowLeft className="h-5 w-5" />
               <span className="text-sm text-muted-foreground">Back to Home</span>
             </Link>
-            <div className="flex items-center space-x-2">
-              <FileText className="h-8 w-8 text-primary" />
-              <span className="text-2xl font-bold text-foreground">Demistify Chat</span>
-            </div>
+            <Logo />
           </div>
-          <Badge variant="secondary">Demo Mode</Badge>
         </div>
       </header>
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* URL Input Section */}
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -140,7 +135,6 @@ export default function ChatPage() {
           </CardContent>
         </Card>
 
-        {/* Chat Messages */}
         <Card className="mb-4">
           <CardContent className="p-0">
             <div className="h-96 overflow-y-auto p-4 space-y-4">
@@ -191,7 +185,6 @@ export default function ChatPage() {
           </CardContent>
         </Card>
 
-        {/* Chat Input */}
         <Card>
           <CardContent className="p-4">
             <div className="flex gap-2">
@@ -199,7 +192,7 @@ export default function ChatPage() {
                 placeholder="Ask me about terms and conditions, privacy policies, or legal documents..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyPress={handleKeyPress}
+                onKeyDown={handleKeyPress}
                 className="flex-1 min-h-[60px] resize-none"
                 disabled={isLoading}
               />
@@ -211,7 +204,6 @@ export default function ChatPage() {
           </CardContent>
         </Card>
 
-        {/* Example Questions */}
         <div className="mt-6">
           <h3 className="text-sm font-medium text-muted-foreground mb-3">Try asking:</h3>
           <div className="flex flex-wrap gap-2">
