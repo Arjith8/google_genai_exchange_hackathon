@@ -5,10 +5,12 @@ import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
 import "./globals.css"
+import { ThemeProvider } from "next-themes"
 
 export const metadata: Metadata = {
   title: "Demistify - Understand Terms & Conditions",
   description: "Transform complex legal documents into clear, understandable language with AI-powered analysis.",
+  generator: "v0.app",
 }
 
 export default function RootLayout({
@@ -17,12 +19,14 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
-        <Suspense fallback={<div>Loading...</div>}>
-          {children}
-          <Analytics />
-        </Suspense>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <Suspense fallback={<div>Loading...</div>}>
+            {children}
+            <Analytics />
+          </Suspense>
+        </ThemeProvider>
       </body>
     </html>
   )

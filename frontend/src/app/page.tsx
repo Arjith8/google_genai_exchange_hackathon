@@ -3,6 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { CheckCircle, FileText, Zap, Shield, ArrowRight, Users, Clock, Star } from "lucide-react"
+import Link from "next/link"
+import { ThemeToggle } from "@/components/custom/theme-toggle"
 
 export default function DemistifyLanding() {
   return (
@@ -23,6 +25,7 @@ export default function DemistifyLanding() {
             <a href="#faq" className="text-muted-foreground hover:text-foreground transition-colors">
               FAQ
             </a>
+            <ThemeToggle />
           </nav>
         </div>
       </header>
@@ -38,10 +41,12 @@ export default function DemistifyLanding() {
             agreeing to before you click "Accept."
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="text-lg px-8">
-              Try Demistify Free
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
+            <Link href="/chat">
+              <Button size="lg" className="text-lg px-8">
+                Try Demistify Free
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
           </div>
           <div className="mt-12 relative">
             <div className="bg-card border border-border rounded-lg p-8 shadow-lg">
@@ -205,10 +210,12 @@ export default function DemistifyLanding() {
             Join thousands of users who are making informed decisions with Demistify
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="text-lg px-8">
-              Start for Free
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
+            <Link href="/chat">
+              <Button size="lg" className="text-lg px-8">
+                Start for Free
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
