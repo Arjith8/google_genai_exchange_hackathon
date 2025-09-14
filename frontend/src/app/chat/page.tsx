@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { FileText, Send, Upload, ArrowLeft, Bot, User, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { Logo } from "@/components/custom/logo"
+import { api } from "@/lib/utils"
 
 interface Message {
   id: string
@@ -48,7 +49,10 @@ export default function ChatPage() {
     setIsLoading(true)
 
     // Simulate AI response
-    setTimeout(() => {
+    setTimeout(async() => {
+      const session_id = sessionStorage.getItem("demistify_session_id");
+      const response = await api.post("/chat", { text: input , session_id });
+      console.log(response)
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: "assistant",
@@ -56,6 +60,9 @@ export default function ChatPage() {
           "I understand you're asking about terms and conditions. While this is a demo, in the full version I would analyze the document and provide clear explanations of complex legal language, highlight important clauses, and help you understand what you're agreeing to.",
         timestamp: new Date(),
       }
+      const session_id_new = response.data.data.session_id;
+      console.log("session_id_new", session_id_new);
+      sessionStorage.setItem("demistify_session_id", session_id_new);
       setMessages((prev) => [...prev, assistantMessage])
       setIsLoading(false)
     }, 1500)
