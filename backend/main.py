@@ -1,12 +1,28 @@
 import re
-from typing import Union
+from typing import Optional, Union
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uuid
+from sqlalchemy import create_engine
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
 
 app = FastAPI()
+
+engine = create_engine('sqlite:///test.db', echo=True)
+class Base(DeclarativeBase):
+    pass
+
+class LinkMetadata(Base):
+    __tablename__ = 'link_metadata'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    url: Mapped[str]
+    company_name: Mapped[Optional[str]] = mapped_column(nullable=True)
+    product_name: Mapped[Optional[str]] = mapped_column(nullable=True)
+
+Base.metadata.create_all(engine)
 
 origins = [
     "http://localhost",
