@@ -35,3 +35,10 @@ class HTMLParser:
             comment.extract()
 
         return soup
+
+    @staticmethod
+    def diff_html(old_html: BeautifulSoup, new_html: BeautifulSoup):
+        """
+        To be used for generating diffs between two HTML strings, after they have been cleaned.
+        """
+        pass
