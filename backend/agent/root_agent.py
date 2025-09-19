@@ -2,7 +2,7 @@ from google.adk.agents import Agent
 
 def root_agent() -> Agent: 
     return Agent(
-        name="demistify-agent",
+        name="demistify_agent",
         model="gemini-2.5-flash",
         description="Agent to answer questions about terms and conditions of services.",
         instruction="""
