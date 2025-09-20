@@ -48,19 +48,6 @@ logging.getLogger("google.adk").disabled = True
 Base.metadata.create_all(engine)
 db_session = Session(engine)
 
-origins = [
-    "http://localhost",
-    "http://localhost:8000",
-    "http://localhost:3000",
-]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 session_service = InMemorySessionService()
 
 load_dotenv()
@@ -75,9 +62,22 @@ if not GCP_PROJECT_ID:
 client = storage.Client(project=GCP_PROJECT_ID)
 bucket = client.bucket(bucket_name=GCP_BUCKET_NAME)
 
+origins = os.getenv("ORIGINS")
+if not origins:
+    raise ValueError("ORIGINS environment variable not set")
+origins = origins.split(",")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 @app.get("/")
 def read_root():
-    return {"Hello": "World"}
+    return {"Hello": origins}
 
 class Chat(BaseModel):
     text: str
