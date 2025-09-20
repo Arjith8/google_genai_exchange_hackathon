@@ -10,6 +10,7 @@ import { MarkdownRenderer } from "@/components/custom/markdown-rendered"
 import { FileText, Send, ArrowLeft, Bot, User, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { api } from "@/lib/utils"
+import { GitDiffButton } from "@/components/custom/diff-button"
 
 interface Message {
   id: string
@@ -29,10 +30,10 @@ export default function ChatPage() {
   ])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [diff, setDiff] = useState("")
 
   const hasLatestDiff = () => {
-    const latestAssistantMessage = messages.filter((m) => m.type === "assistant").pop()
-    return latestAssistantMessage?.diff && latestAssistantMessage.diff.trim() !== ""
+    return diff !== ""
   }
 
   const handleViewDiff = () => {
@@ -62,14 +63,20 @@ export default function ChatPage() {
     const data = response.data.data
     console.log("Response data:", data)
 
+    if (!session_id){
+      localStorage.setItem("demistify_session_id", data.session_id)
+    }
+
+    if (data.diff) {
+      setDiff(data.diff)
+    }
+
     setTimeout(() => {
-      const hasDiff = Math.random() > 0.5
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: "assistant",
         content:
           data.response || "Sorry, we couldn't process your request at this time. Please try again later.",
-        diff: hasDiff ? "Sample diff data - changes detected in T&C document" : undefined,
       }
       setMessages((prev) => [...prev, assistantMessage])
       setIsLoading(false)
@@ -177,15 +184,7 @@ export default function ChatPage() {
                   <Send className="h-4 w-4" />
                 </Button>
                 {hasLatestDiff() && (
-                  <Button
-                    onClick={handleViewDiff}
-                    variant="secondary"
-                    size="lg"
-                    className="px-6 h-12"
-                    title="View document changes"
-                  >
-                    <FileText className="h-4 w-4" />
-                  </Button>
+                  <GitDiffButton diffContent={diff} />
                 )}
               </div>
             </div>
