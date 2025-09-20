@@ -28,7 +28,8 @@ export function GitDiffButton({ diffContent, buttonText = "View Diff" }: GitDiff
       toast("Copied!", {
         description: "Git diff copied to clipboard",
       })
-    } catch (err) {
+    } catch {
+
       toast.error("Failed to copy",{
         description: "Could not copy diff to clipboard",
       })

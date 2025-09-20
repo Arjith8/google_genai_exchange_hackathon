@@ -36,14 +36,6 @@ export default function ChatPage() {
     return diff !== ""
   }
 
-  const handleViewDiff = () => {
-    const latestAssistantMessage = messages.filter((m) => m.type === "assistant").pop()
-    if (latestAssistantMessage?.diff) {
-      console.log("Diff data:", latestAssistantMessage.diff)
-      window.open("/diff", "_blank")
-    }
-  }
-
   const handleSendMessage = async () => {
     if (!input.trim()) return
 

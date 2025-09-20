@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { CheckCircle, FileText, Zap, Shield, ArrowRight, Users, Clock, Star } from "lucide-react"
@@ -35,8 +35,8 @@ export default function DemistifyLanding() {
           </Badge>
           <h1 className="text-5xl md:text-6xl font-bold text-balance mb-6">Demystifying Legal Jargon</h1>
           <p className="text-xl text-muted-foreground text-balance mb-8 max-w-2xl mx-auto">
-            Transform complex terms and conditions into clear, understandable language. Know exactly what you're
-            agreeing to before you click "Accept."
+            Transform complex terms and conditions into clear, understandable language. Know exactly what you are
+            agreeing to before you click {"Accept."}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/chat">
@@ -58,14 +58,13 @@ export default function DemistifyLanding() {
               </div>
               <div className="text-left space-y-3">
                 <div className="bg-muted p-3 rounded text-sm">
-                  <span className="text-destructive font-medium">Complex:</span> "The licensee hereby grants to the
-                  licensor..."
+                  <span className="text-destructive font-medium">Complex:</span> {"The licensee hereby grants to the licensor..."}
                 </div>
                 <div className="flex justify-center">
                   <ArrowRight className="h-5 w-5 text-primary" />
                 </div>
                 <div className="bg-primary/10 p-3 rounded text-sm">
-                  <span className="text-primary font-medium">Simple:</span> "You give us permission to..."
+                  <span className="text-primary font-medium">Simple:</span> { "You give us permission to..." }
                 </div>
               </div>
             </div>
@@ -106,7 +105,7 @@ export default function DemistifyLanding() {
               </div>
               <h3 className="text-xl font-semibold mb-2">3. Understand & Decide</h3>
               <p className="text-muted-foreground">
-                Get clear explanations of what you're agreeing to and make informed decisions
+                Get clear explanations of what you are agreeing to and make informed decisions
               </p>
             </div>
           </div>
@@ -180,7 +179,7 @@ export default function DemistifyLanding() {
               <AccordionTrigger>What types of documents does Demistify support?</AccordionTrigger>
               <AccordionContent>
                 Currently, Demistify works with HTML-based terms and conditions pages that are not client-side rendered.
-                We're actively working on adding support for client-side rendered content and PDF documents.
+                We are actively working on adding support for client-side rendered content and PDF documents.
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="item-2">

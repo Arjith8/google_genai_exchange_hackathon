@@ -1,7 +1,6 @@
 "use client"
 
 import ReactMarkdown from "react-markdown"
-import { useTheme } from "next-themes"
 
 interface MarkdownRendererProps {
   content: string
@@ -10,7 +9,6 @@ interface MarkdownRendererProps {
 
 // Custom CodeBlock component
 function CodeBlock({ children, className }: { children: string; className?: string }) {
-  const { theme } = useTheme()
   const language = className?.replace("language-", "") || "text"
 
   return (
@@ -30,9 +28,10 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
     <div className={`prose prose-sm max-w-none dark:prose-invert ${className}`}>
       <ReactMarkdown
         components={{
-          code({ node, inline, className, children, ...props }) {
+          code({ node, className, children, ...props }) {
+            console.log(node)
             const match = /language-(\w+)/.exec(className || "")
-            return !inline && match ? (
+            return match ? (
               <CodeBlock className={className}>{String(children).replace(/\n$/, "")}</CodeBlock>
             ) : (
               <code className="bg-muted px-1 py-0.5 rounded text-sm" {...props}>
