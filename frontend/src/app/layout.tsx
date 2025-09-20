@@ -6,6 +6,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
 import "./globals.css"
 import { ThemeProvider } from "next-themes"
+import { Toaster } from "sonner"
 
 export const metadata: Metadata = {
   title: "Demistify - Understand Terms & Conditions",
@@ -27,6 +28,7 @@ export default function RootLayout({
             <Analytics />
           </Suspense>
         </ThemeProvider>
+        <Toaster />
       </body>
     </html>
   )
