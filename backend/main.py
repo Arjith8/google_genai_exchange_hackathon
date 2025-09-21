@@ -204,7 +204,7 @@ async def chat(chat: Chat):
 
                 logging.info(f"Change summary: {extra_context}")
 
-        extra_context = extra_context if extra_context else "No significant changes detected."
+        extra_context = extra_context
 
     combined_input = f"""
     [HTML Content From Link In User Question]
