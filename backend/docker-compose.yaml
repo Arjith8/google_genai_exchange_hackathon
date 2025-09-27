@@ -1,0 +1,29 @@
+services:
+  backend:
+    build: .
+    ports:
+      - 8000:8000
+
+    volumes:
+      - sqlite_db:/app/test.db
+    develop:
+      watch:
+        - path: ./pyproject.toml
+          action: rebuild
+        - path: .
+          action: sync+restart
+          target: app/
+
+  playwright:
+    build:
+      context: ../playwright_service
+
+    user: non_root
+    ipc: host
+    security_opt:
+      - seccomp=seccomp_profile.json
+    volumes:
+      - ./seccomp_profile.json:/playwright_service/seccomp_profile.json
+
+volumes:
+  sqlite_db:
