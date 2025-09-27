@@ -10,7 +10,9 @@ RUN apt-get update && apt-get install -y \
 COPY pyproject.toml uv.lock ./
 RUN uv sync 
 
-RUN uv run playwright install chrome
+RUN uv run playwright install chromium
+
+RUN uv run playwright install-deps
 
 COPY . .
 
