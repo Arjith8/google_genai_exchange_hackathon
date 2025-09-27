@@ -1,10 +1,8 @@
-from datetime import datetime, timezone
 import io
 import json
 import logging
 import os
 import re
-from typing import Optional
 import uuid
 
 from fastapi import FastAPI
@@ -15,38 +13,23 @@ from google.cloud import storage
 from google.genai import types
 from pydantic import BaseModel
 import requests
-from sqlalchemy import create_engine, desc, select
-from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
+from sqlalchemy import desc, select
 from dotenv import load_dotenv
 
 from agent import diff_agent, metadata_agent, root_agent
+from database.client import create_db_session
+from database.models import LinkMetadata
 from utils.parse_html import HTMLParser
+
 
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(levelname)s - %(name)s - %(message)s'
 )
-
-app = FastAPI()
-
-engine = create_engine('sqlite:///test.db', echo=True)
-class Base(DeclarativeBase):
-    pass
-
-class LinkMetadata(Base):
-    __tablename__ = 'link_metadata'
-    id: Mapped[int] = mapped_column(primary_key=True)
-    url: Mapped[str]
-    company_name: Mapped[Optional[str]] = mapped_column(nullable=True)
-    product_name: Mapped[Optional[str]] = mapped_column(nullable=True)
-    file_url: Mapped[Optional[str]] = mapped_column(nullable=False)
-
-    created_at: Mapped[Optional[str]] = mapped_column(nullable=True, default=datetime.now(timezone.utc).isoformat())
-
 logging.getLogger("google.adk").disabled = True
 
-Base.metadata.create_all(engine)
-db_session = Session(engine)
+
+app = FastAPI()
 
 session_service = InMemorySessionService()
 
@@ -74,6 +57,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+db_session = create_db_session()
 
 @app.get("/")
 def read_root():
