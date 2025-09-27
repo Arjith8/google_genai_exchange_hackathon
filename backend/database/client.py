@@ -9,4 +9,3 @@ def create_db_session() -> Session:
     Base.metadata.create_all(engine)
     db_session = Session(engine)
     return db_session
-    pass
