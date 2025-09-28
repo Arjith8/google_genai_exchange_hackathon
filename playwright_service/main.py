@@ -18,4 +18,4 @@ def clean_html(body: Link):
         content = page.content()
         content = HTMLParser.clean_html(content).prettify()
 
-        return {"Hello": "World", "content": str(content)}
+        return {"content": str(content)}
