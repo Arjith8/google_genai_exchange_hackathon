@@ -118,8 +118,7 @@ async def chat(chat: Chat):
             .order_by(desc(LinkMetadata.created_at))
             .limit(1)
         )
-        data = requests.get(url[0])
-        new_html = HTMLParser.clean_html(data.text)
+        new_html = HTMLParser.clean_html(url[0])
 
         header_content = HTMLParser.extract_header(new_html)
         header_content = header_content.prettify()

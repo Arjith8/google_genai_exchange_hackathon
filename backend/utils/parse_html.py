@@ -1,6 +1,9 @@
 from bs4 import BeautifulSoup, Comment, Tag
 from difflib import unified_diff
 
+from requests import request
+import requests
+
 class HTMLParser:
     @staticmethod
     def extract_header(soup: BeautifulSoup) -> Tag:
@@ -17,7 +20,7 @@ class HTMLParser:
         return soup.new_tag("head")
 
     @staticmethod
-    def clean_html(html_content) -> BeautifulSoup:
+    def clean_html(url) -> BeautifulSoup:
         """
         Cleans the provided HTML 
 
@@ -28,14 +31,8 @@ class HTMLParser:
             str: The cleaned html content without unnecessary tags and attributes.
         """
 
+        html_content = requests.post("http://playwright:8000/", json={"link": url}).json().get("content", "")
         soup = BeautifulSoup(html_content, 'lxml')
-        delete_tags = ['script', 'style', 'link', 'iframe', 'noscript']
-        entries_to_delete = soup(delete_tags)
-        
-        _ = [entry.decompose() for entry in entries_to_delete]
-
-        for comment in soup.find_all(string=lambda text: isinstance(text, Comment)):
-            comment.extract()
 
         return soup
 

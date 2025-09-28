@@ -5,7 +5,8 @@ services:
       - 8000:8000
 
     volumes:
-      - sqlite_db:/app/test.db
+      - sqlite_db:/test.db
+      - /home/arjith/.config/gcloud/application_default_credentials.json:/app/application_default_credentials.json:ro
     develop:
       watch:
         - path: ./pyproject.toml
@@ -14,16 +15,17 @@ services:
           action: sync+restart
           target: app/
 
+    env_file: .env
+
   playwright:
     build:
       context: ../playwright_service
 
-    user: non_root
     ipc: host
+    ports:
+      - 8001:8000
     security_opt:
-      - seccomp=seccomp_profile.json
-    volumes:
-      - ./seccomp_profile.json:/playwright_service/seccomp_profile.json
+      - seccomp=../playwright_service/seccomp_profile.json
 
 volumes:
   sqlite_db:
