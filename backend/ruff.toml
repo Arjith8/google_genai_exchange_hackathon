@@ -1,0 +1,7 @@
+line-length = 120
+[lint]
+select = ["ALL"]
+ignore = ["PLC0415", "D212", "D203", "COM812", "D200", "D100", "D101", "DJ008"]
+
+[lint.per-file-ignores]
+"**/__init__.py" = ["F401", "D104"]
