@@ -10,4 +10,3 @@ def diff_agent() -> Agent:
         description="Agent that highlights differences between past and current versions of a terms page.",
         instruction=DIFF_AGENT_SYSTEM_PROMPT,
     )
-
