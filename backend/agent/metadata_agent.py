@@ -10,6 +10,9 @@ class MetaData(BaseModel):
 
 
 def metadata_agent() -> LlmAgent:
+    """
+    Agent that extracts metadata and return as a dict/JSON.
+    """
     return LlmAgent(
         name="metadata_agent",
         model="gemini-2.5-flash",

@@ -4,6 +4,7 @@ import logging
 import os
 import re
 import uuid
+from typing import Any
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
@@ -33,18 +34,22 @@ session_service = InMemorySessionService()
 load_dotenv()
 GCP_BUCKET_NAME = os.getenv("GCP_BUCKET_NAME")
 if not GCP_BUCKET_NAME:
-    raise ValueError("GCP_BUCKET_NAME environment variable not set")
+    msg = "GCP_BUCKET_NAME environment variable not set"
+    raise ValueError(msg)
 
 GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID")
 if not GCP_PROJECT_ID:
-    raise ValueError("GCP_PROJECT_ID environment variable not set")
+    msg = "GCP_PROJECT_ID environment variable not set"
+    raise ValueError(msg)
 
 client = storage.Client(project=GCP_PROJECT_ID)
 bucket = client.bucket(bucket_name=GCP_BUCKET_NAME)
 
 origins = os.getenv("ORIGINS")
 if not origins:
-    raise ValueError("ORIGINS environment variable not set")
+    msg = "ORIGINS environment variable not set"
+    raise ValueError(msg)
+
 origins = origins.split(",")
 
 app.add_middleware(
@@ -57,22 +62,26 @@ app.add_middleware(
 
 db_session = create_db_session()
 
+class RootResponse(BaseModel):
+    Hello: str
 
-@app.get("/")
-def read_root():
+@app.get("/", response_model=RootResponse)
+def read_root() -> Any:
     """
     Dummy endpoint.
     """
-    return {"Hello": origins}
+    return {"Hello": "World"}
 
 
-class Chat(BaseModel):
+class ChatRequest(BaseModel):
     text: str
     session_id: str | None = None
 
+class ChatResponse(BaseModel):
+    data: dict
 
-@app.post("/chat")
-async def chat(chat: Chat):
+@app.post("/chat", response_model=ChatResponse)
+async def chat(chat: ChatRequest) -> ChatResponse:
     """
     Chat endpoint.
     """

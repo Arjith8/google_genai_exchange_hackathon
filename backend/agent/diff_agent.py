@@ -4,6 +4,9 @@ from agent.prompt.system.diff_agent_prompt import DIFF_AGENT_SYSTEM_PROMPT
 
 
 def diff_agent() -> Agent:
+    """
+    Agent that generates diff summaries.
+    """
     return Agent(
         name="diff_agent",
         model="gemini-2.5-flash",
