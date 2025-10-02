@@ -1,10 +1,8 @@
-import io
 import json
 import logging
 import os
 import re
 import uuid
-from typing import Any
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
@@ -19,6 +17,8 @@ from sqlalchemy import desc, select
 from agent import diff_agent, metadata_agent, root_agent
 from database.client import create_db_session
 from database.models import LinkMetadata
+from utils.chat import ChatUtils
+from utils.file import FileUtils
 from utils.parse_html import HTMLParser
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
@@ -29,7 +29,8 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-session_service = InMemorySessionService()
+chat_utils = ChatUtils(InMemorySessionService())
+session_service = chat_utils.session_service
 
 load_dotenv()
 GCP_BUCKET_NAME = os.getenv("GCP_BUCKET_NAME")
@@ -63,14 +64,14 @@ app.add_middleware(
 db_session = create_db_session()
 
 class RootResponse(BaseModel):
-    Hello: str
+    status: str
 
 @app.get("/", response_model=RootResponse)
-def read_root() -> Any:
+def status() -> RootResponse:
     """
-    Dummy endpoint.
+    Return the API status.
     """
-    return {"Hello": "World"}
+    return RootResponse(status="OK")
 
 
 class ChatRequest(BaseModel):
@@ -80,20 +81,12 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     data: dict
 
-@app.post("/chat", response_model=ChatResponse)
+@app.post("/chat")
 async def chat(chat: ChatRequest) -> ChatResponse:
     """
     Chat endpoint.
     """
-    session_id = chat.session_id
-    if not session_id:
-        session_id = str(uuid.uuid4())
-
-    session = await session_service.get_session(user_id=session_id, session_id=session_id, app_name="demistify_agent")
-    if not session:
-        session = await session_service.create_session(
-            user_id=session_id, session_id=session_id, app_name="demistify_agent"
-        )
+    session_id = await chat_utils.get_or_create_session_id(chat.session_id)
 
     # Add test cases for this regex to be extra safe
     regex = r"https?:\/\/(?:localhost|\d{1,3}(?:\.\d{1,3}){3}|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(?::\d+)?(?:[^\s]*)?"
@@ -121,15 +114,13 @@ async def chat(chat: ChatRequest) -> ChatResponse:
 
             logger.info("Running metadata agent...")
 
-            metadata_data = ""
+            metadata_data = "No final response received."
             async for event in metadata_agent_runner.run_async(
                 user_id=session_id, session_id=session_id, new_message=metadata_agent_content
             ):
                 if event.is_final_response() and event.content and event.content.parts:
-                    metadata_data = event.content.parts[0].text
-
-            if not metadata_data:
-                metadata_data = "No final response received."
+                    content = event.content.parts[0]
+                    metadata_data = content.text if content.text else "No final response received."
 
             logger.info("Metadata agent response: %s", metadata_data)
             match = re.search(r"\{.*\}", metadata_data, re.DOTALL)
@@ -140,24 +131,17 @@ async def chat(chat: ChatRequest) -> ChatResponse:
 
             # Need to figure out a better way using async efficiently, since I dont need to wait for this to finish
             # I have time till resp is send so i can check if there was some error or nah
-
-            file = io.BytesIO(new_html_str.encode("utf-8"))
-            blob_name = f"html/{uuid.uuid1()}.html"
-
-            logger.info("Uploading HTML content to GCP bucket")
-
-            blob = bucket.blob(blob_name)
-            blob.upload_from_file(file, rewind=True, content_type="text/plain")
+            file_name = f"html/{uuid.uuid1()}.html"
+            FileUtils.upload(file=new_html_str, file_name=file_name, bucket=bucket)
 
             logger.info("Upload complete. Storing metadata in database for URL: %s", url[0])
 
             # Need to check scope of using async with sqlalchemy
-            logger.info("Metadata to be stored in DB: %s", metadata)
             link_metadata = LinkMetadata(
                 url=url[0],
                 company_name=metadata.get("company_name"),
                 product_name=metadata.get("product_name"),
-                file_url=blob_name,
+                file_url=file_name,
             )
             db_session.add(link_metadata)
             db_session.commit()
@@ -178,8 +162,6 @@ async def chat(chat: ChatRequest) -> ChatResponse:
             logger.info("Comparing old and new HTML content.")
             diff = HTMLParser.diff_html(old_html, new_html)
             if diff:
-                logger.info("Changes detected for URL: %s", url[0])
-
                 logger.info("Extracting change summary using diff_agent.")
                 diff_agent_instance = diff_agent()
                 diff_agent_content = types.Content(role="user", parts=[types.Part(text=diff)])

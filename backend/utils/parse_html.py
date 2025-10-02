@@ -37,7 +37,7 @@ class HTMLParser:
 
         """
         html_content = (
-            requests.post("http://playwright:8000/", json={"link": url}, timeout=10).json().get("content", "")
+            requests.post("http://playwright:8000/", json={"link": url}, timeout=10000).json().get("content", "")
         )
         return BeautifulSoup(html_content, "lxml")
 
