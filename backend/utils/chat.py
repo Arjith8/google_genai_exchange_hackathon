@@ -29,9 +29,7 @@ class ChatUtils:
             session_id = str(uuid.uuid4())
 
         session = await self.session_service.get_session(
-            user_id=session_id,
-            session_id=session_id,
-            app_name="demistify_agent"
+            user_id=session_id, session_id=session_id, app_name="demistify_agent"
         )
         if not session:
             session = await self.session_service.create_session(
@@ -39,4 +37,3 @@ class ChatUtils:
             )
 
         return session_id
-

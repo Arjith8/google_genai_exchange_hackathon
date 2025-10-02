@@ -5,6 +5,7 @@ from google.cloud.storage import Bucket
 
 logger = logging.getLogger(__name__)
 
+
 class FileUtils:
     @staticmethod
     def upload(file: str, file_name: str, bucket: Bucket) -> None:

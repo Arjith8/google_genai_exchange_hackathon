@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import re
@@ -14,11 +13,12 @@ from google.genai import types
 from pydantic import BaseModel
 from sqlalchemy import desc, select
 
-from agent import diff_agent, metadata_agent, root_agent
+from agent import diff_agent, root_agent
 from database.client import create_db_session
 from database.models import LinkMetadata
 from utils.chat import ChatUtils
 from utils.file import FileUtils
+from utils.metadata import MetadataUtils
 from utils.parse_html import HTMLParser
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
@@ -63,8 +63,10 @@ app.add_middleware(
 
 db_session = create_db_session()
 
+
 class RootResponse(BaseModel):
     status: str
+
 
 @app.get("/", response_model=RootResponse)
 def status() -> RootResponse:
@@ -78,8 +80,10 @@ class ChatRequest(BaseModel):
     text: str
     session_id: str | None = None
 
+
 class ChatResponse(BaseModel):
     data: dict
+
 
 @app.post("/chat")
 async def chat(chat: ChatRequest) -> ChatResponse:
@@ -105,29 +109,9 @@ async def chat(chat: ChatRequest) -> ChatResponse:
 
         result = db_session.execute(stmt).scalar_one_or_none()
         if not result:
-            logger.info("No existing metadata found for URL: %s. Creating new entry.", url[0])
-            logger.info("Extracting metadata using metadata_agent for URL: %s", url[0])
-            agent = metadata_agent()
-
-            metadata_agent_content = types.Content(role="user", parts=[types.Part(text=header_content)])
-            metadata_agent_runner = Runner(agent=agent, app_name="demistify_agent", session_service=session_service)
-
-            logger.info("Running metadata agent...")
-
-            metadata_data = "No final response received."
-            async for event in metadata_agent_runner.run_async(
-                user_id=session_id, session_id=session_id, new_message=metadata_agent_content
-            ):
-                if event.is_final_response() and event.content and event.content.parts:
-                    content = event.content.parts[0]
-                    metadata_data = content.text if content.text else "No final response received."
-
-            logger.info("Metadata agent response: %s", metadata_data)
-            match = re.search(r"\{.*\}", metadata_data, re.DOTALL)
-            metadata = {}
-            if match:
-                clean = match.group(0)
-                metadata = json.loads(clean)
+            metadata = await MetadataUtils.extract_metadata(
+                header_content=header_content, session_id=session_id, session_service=session_service
+            )
 
             # Need to figure out a better way using async efficiently, since I dont need to wait for this to finish
             # I have time till resp is send so i can check if there was some error or nah
