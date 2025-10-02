@@ -1,10 +1,9 @@
-import io
-import json
 import logging
 import os
 import re
 import uuid
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from google.adk.runners import Runner
@@ -12,42 +11,46 @@ from google.adk.sessions import InMemorySessionService
 from google.cloud import storage
 from google.genai import types
 from pydantic import BaseModel
-import requests
 from sqlalchemy import desc, select
-from dotenv import load_dotenv
 
-from agent import diff_agent, metadata_agent, root_agent
+from agent import diff_agent, root_agent
 from database.client import create_db_session
 from database.models import LinkMetadata
+from utils.chat import ChatUtils
+from utils.file import FileUtils
+from utils.metadata import MetadataUtils
 from utils.parse_html import HTMLParser
 
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(name)s - %(message)s'
-)
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
 logging.getLogger("google.adk").disabled = True
+
+logger = logging.getLogger(__name__)
 
 
 app = FastAPI()
 
-session_service = InMemorySessionService()
+chat_utils = ChatUtils(InMemorySessionService())
+session_service = chat_utils.session_service
 
 load_dotenv()
 GCP_BUCKET_NAME = os.getenv("GCP_BUCKET_NAME")
 if not GCP_BUCKET_NAME:
-    raise ValueError("GCP_BUCKET_NAME environment variable not set")
+    msg = "GCP_BUCKET_NAME environment variable not set"
+    raise ValueError(msg)
 
 GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID")
 if not GCP_PROJECT_ID:
-    raise ValueError("GCP_PROJECT_ID environment variable not set")
+    msg = "GCP_PROJECT_ID environment variable not set"
+    raise ValueError(msg)
 
 client = storage.Client(project=GCP_PROJECT_ID)
 bucket = client.bucket(bucket_name=GCP_BUCKET_NAME)
 
 origins = os.getenv("ORIGINS")
 if not origins:
-    raise ValueError("ORIGINS environment variable not set")
+    msg = "ORIGINS environment variable not set"
+    raise ValueError(msg)
+
 origins = origins.split(",")
 
 app.add_middleware(
@@ -60,49 +63,44 @@ app.add_middleware(
 
 db_session = create_db_session()
 
-@app.get("/")
-def read_root():
-    return {"Hello": origins}
 
-class Chat(BaseModel):
+class RootResponse(BaseModel):
+    status: str
+
+
+@app.get("/", response_model=RootResponse)
+def status() -> RootResponse:
+    """
+    Return the API status.
+    """
+    return RootResponse(status="OK")
+
+
+class ChatRequest(BaseModel):
     text: str
     session_id: str | None = None
 
+
+class ChatResponse(BaseModel):
+    data: dict
+
+
 @app.post("/chat")
-async def chat(chat: Chat):
-    session_id = chat.session_id
-    if not session_id:
-        session_id = str(uuid.uuid4())
+async def chat(chat: ChatRequest) -> ChatResponse:
+    """
+    Chat endpoint.
+    """
+    session_id = await chat_utils.get_or_create_session_id(chat.session_id)
 
-    session = await session_service.get_session(
-        user_id=session_id,
-        session_id=session_id,
-        app_name="demistify_agent"
-    )
-    print("Session fetched successfully", session)
-    if not session:
-        session = await session_service.create_session(
-            user_id=session_id,
-            session_id=session_id,
-            app_name="demistify_agent"
-        )
-        print("Session created successfully", session)
-
-    
     # Add test cases for this regex to be extra safe
-    regex = r'https?:\/\/(?:localhost|\d{1,3}(?:\.\d{1,3}){3}|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(?::\d+)?(?:[^\s]*)?'
+    regex = r"https?:\/\/(?:localhost|\d{1,3}(?:\.\d{1,3}){3}|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(?::\d+)?(?:[^\s]*)?"
     url = re.findall(regex, chat.text)
     extra_context = ""
     new_html_str = ""
     diff = ""
     if url:
-        logging.info(f"URL found in user input: {url[0]}")
-        stmt = (
-            select(LinkMetadata)
-            .where(LinkMetadata.url == url[0])
-            .order_by(desc(LinkMetadata.created_at))
-            .limit(1)
-        )
+        logger.info("URL found in user input: %s", url[0])
+        stmt = select(LinkMetadata).where(LinkMetadata.url == url[0]).order_by(desc(LinkMetadata.created_at)).limit(1)
         new_html = HTMLParser.clean_html(url[0])
 
         header_content = HTMLParser.extract_header(new_html)
@@ -111,88 +109,59 @@ async def chat(chat: Chat):
 
         result = db_session.execute(stmt).scalar_one_or_none()
         if not result:
-            logging.info(f"No existing metadata found for URL: {url[0]}. Creating new entry.")
-            logging.info(f"Extracting metadata using metadata_agent for URL: {url[0]}")
-            agent = metadata_agent()
+            metadata = await MetadataUtils.extract_metadata(
+                header_content=header_content, session_id=session_id, session_service=session_service
+            )
 
-            metadata_agent_content = types.Content(role='user', parts=[types.Part(text=header_content)])
-            metadata_agent_runner = Runner(agent=agent, app_name="demistify_agent", session_service=session_service)
+            # Need to figure out a better way using async efficiently, since I dont need to wait for this to finish
+            # I have time till resp is send so i can check if there was some error or nah
+            file_name = f"html/{uuid.uuid1()}.html"
+            FileUtils.upload(file=new_html_str, file_name=file_name, bucket=bucket)
 
-            logging.info("Running metadata agent...")
-
-            metadata_data = ""
-            async for event in metadata_agent_runner.run_async(user_id=session_id, session_id=session_id, new_message=metadata_agent_content):
-                if event.is_final_response() and event.content and event.content.parts:
-                    metadata_data = event.content.parts[0].text
-
-            if not metadata_data:
-                metadata_data = "No final response received."
-
-            logging.info(f"Metadata agent response: {metadata_data}")
-            match = re.search(r"\{.*\}", metadata_data, re.DOTALL)
-            metadata = {}
-            if match:
-                clean = match.group(0)
-                metadata = json.loads(clean)
-
-            # Need to figure out a better way using async efficiently, since I dont need to wait for this to finish I have 
-            #   time till resp is send so i can check if there was some error or nah
-
-            file = io.BytesIO(new_html_str.encode('utf-8'))
-            blob_name = f"html/{uuid.uuid1()}.html"
-
-            logging.info(f"Uploading HTML content to GCP bucket: {GCP_BUCKET_NAME}, blob: {blob_name}")
-
-            blob = bucket.blob(blob_name)
-            blob.upload_from_file(file, rewind=True, content_type="text/plain")
-
-            logging.info(f"Upload complete. Storing metadata in database for URL: {url[0]}")
+            logger.info("Upload complete. Storing metadata in database for URL: %s", url[0])
 
             # Need to check scope of using async with sqlalchemy
-            logging.info(f"Metadata to be stored in DB: {metadata}")
             link_metadata = LinkMetadata(
                 url=url[0],
                 company_name=metadata.get("company_name"),
                 product_name=metadata.get("product_name"),
-                file_url=blob_name
+                file_url=file_name,
             )
             db_session.add(link_metadata)
             db_session.commit()
 
-            logging.info(f"Metadata stored successfully for URL: {url[0]}")
+            logger.info("Metadata stored successfully")
 
         else:
-            logging.info(f"Existing metadata found for URL: {url[0]}. Checking for changes.")
+            logger.info("Existing metadata found for URL: %s. Checking for changes.", url[0])
 
             old_file_url = result.file_url
 
-            logging.info(f"Fetching old HTML content from GCP bucket: {GCP_BUCKET_NAME}, blob: {old_file_url}")
+            logger.info("Fetching old HTML content from GCP bucket")
             blob = bucket.blob(old_file_url)
 
-            logging.info(f"Downloading old HTML content for comparison.")
+            logger.info("Downloading old HTML content for comparison.")
             old_html = blob.download_as_text()
 
-            logging.info(f"Comparing old and new HTML content.")
+            logger.info("Comparing old and new HTML content.")
             diff = HTMLParser.diff_html(old_html, new_html)
             if diff:
-                logging.info(f"Changes detected for URL: {url[0]}")
-
-                logging.info(f"Extracting change summary using diff_agent.")
+                logger.info("Extracting change summary using diff_agent.")
                 diff_agent_instance = diff_agent()
-                diff_agent_content = types.Content(role='user', parts=[types.Part(text=diff)])
-                diff_agent_runner = Runner(agent=diff_agent_instance, app_name="demistify_agent", session_service=session_service)
+                diff_agent_content = types.Content(role="user", parts=[types.Part(text=diff)])
+                diff_agent_runner = Runner(
+                    agent=diff_agent_instance, app_name="demistify_agent", session_service=session_service
+                )
 
-                async for event in diff_agent_runner.run_async(user_id=session_id, session_id=session_id, new_message=diff_agent_content):
+                async for event in diff_agent_runner.run_async(
+                    user_id=session_id, session_id=session_id, new_message=diff_agent_content
+                ):
                     if event.is_final_response() and event.content and event.content.parts:
                         extra_context = event.content.parts[0].text
 
-                logging.info(f"Change summary: {extra_context}")
-
-        extra_context = extra_context
-
     combined_input = f"""
     [HTML Content From Link In User Question]
-    {new_html_str if new_html_str else 'No HTML provided'}
+    {new_html_str if new_html_str else "No HTML provided"}
 
     [Changes Summary]
     {extra_context}
@@ -209,21 +178,11 @@ async def chat(chat: Chat):
     main_runner = Runner(agent=main_agent, app_name="demistify_agent", session_service=session_service)
 
     final_response = ""
-    async for event in main_runner.run_async(
-        user_id=session_id,
-        session_id=session_id,
-        new_message=user_content
-    ):
+    async for event in main_runner.run_async(user_id=session_id, session_id=session_id, new_message=user_content):
         if event.is_final_response() and event.content and event.content.parts:
             final_response = event.content.parts[0].text
 
     if not final_response:
         final_response = "No final response received."
 
-    return {
-        "data": {
-            "response": final_response,
-            "session_id": session_id,
-            "diff": diff
-        }
-    }
+    return {"data": {"response": final_response, "session_id": session_id, "diff": diff}}

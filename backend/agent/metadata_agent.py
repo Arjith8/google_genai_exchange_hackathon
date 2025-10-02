@@ -3,15 +3,19 @@ from pydantic import BaseModel
 
 from agent.prompt.system.metadata_agent_prompt import METADATA_AGENT_SYSTEM_PROMPT
 
+
 class MetaData(BaseModel):
     product_name: str | None = None
     company_name: str | None = None
 
+
 def metadata_agent() -> LlmAgent:
+    """
+    Agent that extracts metadata and return as a dict/JSON.
+    """
     return LlmAgent(
         name="metadata_agent",
         model="gemini-2.5-flash",
         description="Agent to extract metadata from HTML content.",
         instruction=METADATA_AGENT_SYSTEM_PROMPT,
     )
-
